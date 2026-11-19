@@ -24,11 +24,11 @@ const loadManifest = async () =>
   JSON.parse(await readFile(join(dir, "onirtech.template.json"), "utf8"));
 const loadEntry = async (manifest) => readFile(join(dir, manifest.ui.entry.replace(/^\.\//, "")));
 
-const PARAM_TYPES = ["string", "text", "number", "boolean", "color", "url", "image", "select"];
+const PARAM_TYPES = ["string", "text", "number", "boolean", "color", "url", "image", "select", "object", "array"];
 const PARAM_KEY = /^[a-z][a-z0-9_]{1,40}$/;
 const COLOR = /^#[0-9a-fA-F]{6}$/;
-const MAX_PARAMS = 40;
-const MAX_PARAMS_BYTES = 16 * 1024;
+const MAX_PARAMS = 64;
+const MAX_PARAMS_BYTES = 64 * 1024;
 const MAX_PARAM_STRING = 2000;
 
 const isHttpUrl = (value) => {
@@ -118,6 +118,28 @@ function checkParams(params) {
       case "image":
         if (typeof value !== "string" || (value !== "" && !isHttpUrl(value))) {
           errors.push(`${at}.default : vide ou URL http(s) attendue`);
+        }
+        break;
+      case "object":
+        if (value === null || typeof value !== "object" || Array.isArray(value)) {
+          errors.push(`${at}.default : objet attendu`);
+        }
+        if (!Array.isArray(param.properties)) {
+          errors.push(`${at}.properties : liste attendue`);
+        }
+        break;
+      case "array":
+        if (!Array.isArray(value)) {
+          errors.push(`${at}.default : tableau attendu`);
+        }
+        if (param.items === undefined || param.items === null || typeof param.items !== "object" || Array.isArray(param.items)) {
+          errors.push(`${at}.items : schéma d'item attendu`);
+        }
+        if (param.minItems !== undefined && value.length < param.minItems) {
+          errors.push(`${at}.default : moins de minItems`);
+        }
+        if (param.maxItems !== undefined && value.length > param.maxItems) {
+          errors.push(`${at}.default : plus de maxItems`);
         }
         break;
       case "select": {

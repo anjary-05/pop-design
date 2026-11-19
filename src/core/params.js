@@ -31,8 +31,98 @@ const OPTIONS = {
   ],
 };
 
+const SECTION_DEFAULTS = {
+  render: { type: "card", layout: "stack", source: "static", media_type: "photo", max_items: 5 },
+  content: { title: "", description: "", text: "", images: [], links: [] },
+};
+
+const SECTION_ITEM_SCHEMA = {
+  type: "object",
+  default: {
+    id: "section",
+    role: "custom",
+    enabled: true,
+    navigation: { label: "Section", icon: "file" },
+    render: { ...SECTION_DEFAULTS.render },
+    content: { ...SECTION_DEFAULTS.content },
+  },
+  properties: [
+    { key: "id", label: "Identifiant", description: "Clé technique unique.", type: "string", default: "section", maxLength: 40 },
+    { key: "role", label: "Rôle", description: "Rôle métier libre : welcome, team, catalogue, contact, faq…", type: "string", default: "custom", maxLength: 40 },
+    { key: "enabled", label: "Activer la section", description: "Désactiver pour masquer l'onglet.", type: "boolean", default: true },
+    {
+      key: "navigation",
+      label: "Navigation",
+      description: "Onglet affiché à gauche.",
+      type: "object",
+      default: { label: "Section", icon: "file" },
+      properties: [
+        { key: "label", label: "Libellé de l'onglet", description: "Texte visible.", type: "string", default: "Section", maxLength: 40 },
+        { key: "icon", label: "Icône", description: "Nom d'icône du registre.", type: "string", default: "file", maxLength: 40 },
+      ],
+    },
+    {
+      key: "render",
+      label: "Rendu",
+      description: "Type structurel, mise en page et source de données.",
+      type: "object",
+      default: { ...SECTION_DEFAULTS.render },
+      properties: [
+        { key: "type", label: "Type", description: "Mode d'affichage structurel.", type: "select", default: "card", options: [
+          { value: "card", label: "Carte" },
+          { value: "text", label: "Texte" },
+          { value: "image", label: "Image" },
+          { value: "grid", label: "Grille" },
+          { value: "form", label: "Formulaire" },
+        ] },
+        { key: "layout", label: "Mise en page", description: "Variante du type.", type: "select", default: "stack", options: [
+          { value: "hero", label: "Hero (2 visuels)" },
+          { value: "split", label: "Texte + visuels" },
+          { value: "members", label: "Cartes membres" },
+          { value: "stack", label: "Empilé" },
+          { value: "media", label: "Média" },
+        ] },
+        { key: "source", label: "Source", description: "Origine des données.", type: "select", default: "static", options: [
+          { value: "static", label: "Contenu statique" },
+          { value: "medias", label: "Photothèque" },
+          { value: "contact", label: "Formulaire de contact" },
+        ] },
+        { key: "media_type", label: "Type de média", description: "Filtrer la photothèque.", type: "select", default: "photo", options: [
+          { value: "photo", label: "Photos" },
+          { value: "lien", label: "Liens" },
+        ] },
+        { key: "max_items", label: "Nombre max", description: "Nombre maximum d'images affichées (1..8).", type: "number", default: 5, min: 1, max: 8 },
+      ],
+    },
+    {
+      key: "content",
+      label: "Contenu",
+      description: "Données affichées dans le panneau.",
+      type: "object",
+      default: { ...SECTION_DEFAULTS.content },
+      properties: [
+        { key: "title", label: "Titre", description: "Titre du panneau.", type: "string", default: "", maxLength: 80 },
+        { key: "description", label: "Description", description: "Résumé court.", type: "text", default: "", maxLength: 400 },
+        { key: "text", label: "Texte", description: "Contenu long (Markdown).", type: "text", default: "", maxLength: 1200 },
+        { key: "images", label: "Images", description: "URLs ou chemins d'images fixes.", type: "array", default: [], maxItems: 8, items: { type: "string", default: "", maxLength: 500 } },
+        { key: "members", label: "Membres", description: "Cartes membres : nom, rôle et photo.", type: "array", default: [], maxItems: 8, items: {
+          type: "object",
+          default: { name: "John Doe", role: "Fonction", image: "" },
+          properties: [
+            { key: "name", label: "Nom", description: "Nom affiché.", type: "string", default: "John Doe", maxLength: 80 },
+            { key: "role", label: "Rôle", description: "Fonction ou description.", type: "string", default: "", maxLength: 120 },
+            { key: "image", label: "Photo", description: "URL de la photo.", type: "image", default: "" },
+          ],
+        } },
+        { key: "links", label: "Liens", description: "URLs de liens complémentaires.", type: "array", default: [], maxItems: 8, items: { type: "string", default: "", maxLength: 500 } },
+      ],
+    },
+  ],
+};
+
 export const PARAM_DEFINITIONS = [
   { key: "titre", label: "Titre", description: "Titre de l'en-tête (fourni par le backend/configuration).", type: "string", default: "", maxLength: 60 },
+  { key: "nom_assistant", label: "Nom de l'assistant", description: "Nom affiché dans le chat ; vide = nom de l'organisation.", type: "string", default: "", maxLength: 60 },
   { key: "sous_titre", label: "Sous-titre", description: "Phrase d'accueil sous le titre ; {marque} et {lien} remplacés.", type: "text", default: "", maxLength: 300 },
   { key: "logo_url", label: "Logo", description: "Image du logo (backend/marque).", type: "image", default: "" },
   { key: "image_fond", label: "Image de fond", description: "Photo plein écran (backend).", type: "image", default: "" },
@@ -76,6 +166,7 @@ export const PARAM_DEFINITIONS = [
     { id: "realisations", type: "gallery", icone: "handshake", libelle: "Réalisations", description: "" },
     { id: "contact", type: "contact", icone: "comments", libelle: "Contact", description: "" },
   ], null, 0), maxLength: 2000 },
+  { key: "sections", label: "Sections structurées", description: "Organisation recommandée : rôle, rendu et contenu séparés. Prioritaire sur tuiles_json.", type: "array", default: [], minItems: 0, maxItems: 8, items: SECTION_ITEM_SCHEMA },
   { key: "chat_json", label: "Discussion avancée (JSON)", description: "Options de discussion (backend).", type: "text", default: "{}", maxLength: 2000 },
 ];
 

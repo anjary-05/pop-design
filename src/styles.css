@@ -1613,6 +1613,52 @@
   line-height: 1.6;
 }
 
+/* Cartes membres : une carte par personne, image + nom + rôle. */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.9rem;
+  margin-top: 0.4rem;
+}
+
+.team-card {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pop-text) 14%, transparent);
+  border-radius: calc(var(--pop-radius) * 0.8);
+  background: color-mix(in srgb, var(--pop-glass-bg) 88%, transparent);
+}
+
+.team-card__img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+}
+
+.team-card__img--placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--pop-muted);
+  background: var(--pop-glass-bg);
+}
+
+.team-card__body {
+  padding: 0.7rem 0.8rem 0.8rem;
+}
+
+.team-card__body h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.team-card__body p {
+  margin: 0;
+  color: var(--pop-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .panel-empty {
   display: flex;
   flex-direction: column;

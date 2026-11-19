@@ -17,6 +17,8 @@ import {
   shouldShowSuggestions,
 } from "../src/core/chat.js";
 import { buildDesign, contrastInk } from "../src/core/design.js";
+import { createUiModel } from "../src/core/ui.js";
+import { createStructuredSections } from "../src/core/sections.js";
 import { PanelModel, TileModel, uniqueElements } from "../src/core/element.js";
 import {
   DEFAULTS,
@@ -36,8 +38,8 @@ import {
 } from "../src/core/tiles.js";
 
 describe("paramètres publics", () => {
-  it("expose exactement 40 paramètres valides pour le contrat hôte", () => {
-    expect(PARAM_DEFINITIONS).toHaveLength(40);
+  it("expose exactement 42 paramètres valides pour le contrat hôte", () => {
+    expect(PARAM_DEFINITIONS).toHaveLength(42);
 
     const keys = PARAM_DEFINITIONS.map((param) => param.key);
     expect(new Set(keys).size).toBe(keys.length);
@@ -50,13 +52,19 @@ describe("paramètres publics", () => {
       expect(param.description.trim()).not.toBe("");
       if (param.type === "boolean") {
         expect(typeof param.default).toBe("boolean");
+      } else if (param.type === "number") {
+        expect(typeof param.default).toBe("number");
+      } else if (param.type === "array") {
+        expect(Array.isArray(param.default)).toBe(true);
+      } else if (param.type === "object") {
+        expect(param.default !== null && typeof param.default === "object").toBe(true);
       } else {
         expect(typeof param.default).toBe("string");
       }
       if (param.type === "select") {
         expect(param.options.some((option) => option.value === param.default)).toBe(true);
       }
-      if (param.maxLength) {
+      if (param.maxLength && typeof param.default === "string") {
         expect(param.default.length).toBeLessThanOrEqual(param.maxLength);
       }
     }
@@ -314,6 +322,54 @@ describe("discussion", () => {
     expect(text).toContain("ACME");
     expect(text).toContain("Campagne");
     expect(text).toContain(String(new Date().getFullYear()));
+  });
+});
+
+describe("sections structurées", () => {
+  const sections = [
+    { id: "welcome", role: "welcome", navigation: { label: "Bienvenue", icon: "home" }, render: { type: "card", layout: "hero" }, content: { title: "Bienvenue", text: "Texte" } },
+    { id: "team", role: "team", navigation: { label: "Équipe", icon: "users" }, render: { type: "card", layout: "members" }, content: { title: "Équipe", text: "Notre équipe", members: [{ name: "John Doe", role: "Fondateur", image: "https://exemple.com/john.jpg" }] } },
+    { id: "catalogue", role: "catalogue", navigation: { label: "Produits", icon: "handshake" }, render: { type: "grid", layout: "media", source: "medias", max_items: 3 }, content: { title: "Produits" } },
+    { id: "services", role: "services", navigation: { label: "Services", icon: "file" }, render: { type: "text", layout: "stack" }, content: { title: "Services", text: "Conseil" } },
+    { id: "contact", role: "contact", navigation: { label: "Contact", icon: "comments" }, render: { type: "form", layout: "stack", source: "contact" }, content: { title: "Contact" } },
+  ];
+
+  it("convertit rôle, rendu et contenu en tuiles et panneaux", () => {
+    const result = createStructuredSections({ sections });
+    expect(result.hasSections).toBe(true);
+    expect(result.tiles.map((tile) => tile.kind)).toEqual([
+      "welcome", "team", "gallery", "text", "contact",
+    ]);
+    expect(result.panels.map((panel) => panel.kind)).toEqual([
+      "welcome", "team", "gallery", "text", "contact",
+    ]);
+    expect(result.panels[1].members).toEqual([
+      { name: "John Doe", role: "Fondateur", image: "https://exemple.com/john.jpg" },
+    ]);
+    expect(result.panels[2].maxItems).toBe(3);
+  });
+
+  it("ignore les sections désactivées", () => {
+    const result = createStructuredSections({ sections: [sections[0], { ...sections[1], enabled: false }] });
+    expect(result.tiles).toHaveLength(1);
+    expect(result.tiles[0].kind).toBe("welcome");
+  });
+});
+
+describe("identité de l'assistant", () => {
+  it("surcharge le nom de l'organisation avec nom_assistant", () => {
+    const model = createUiModel(
+      { brand: { name: "ONIRTECH" } },
+      { nom_assistant: "Maison Kolo", sous_titre: "Bonjour {marque}" },
+      [],
+    );
+    expect(model.content.brandName).toBe("Maison Kolo");
+    expect(model.content.subtitle).toBe("Bonjour Maison Kolo");
+  });
+
+  it("retombe sur le nom de l'organisation quand nom_assistant est vide", () => {
+    const model = createUiModel({ brand: { name: "ONIRTECH" } }, {}, []);
+    expect(model.content.brandName).toBe("ONIRTECH");
   });
 });
 

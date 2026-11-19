@@ -87,8 +87,19 @@ export class PanelModel extends VisualElement {
     this.images = Array.isArray(input.images)
       ? input.images.filter((entry) => typeof entry === "string" && entry.trim() !== "")
       : [];
+    this.members = Array.isArray(input.members)
+      ? input.members
+          .filter((entry) => entry !== null && typeof entry === "object" && !Array.isArray(entry))
+          .map((entry) => ({
+            name: stringOr(entry.name, ""),
+            role: stringOr(entry.role, ""),
+            image: stringOr(entry.image, ""),
+          }))
+          .filter((entry) => entry.name !== "" || entry.role !== "" || entry.image !== "")
+      : [];
     this.icon = stringOr(input.icon ?? input.icone, "");
     this.tileId = stringOr(input.tileId ?? input.tile, "");
+    this.maxItems = Number.isFinite(input.maxItems) ? Math.max(1, Math.min(8, input.maxItems)) : null;
     this.tile = input.element instanceof TileModel ? input.element : null;
   }
 
@@ -100,7 +111,9 @@ export class PanelModel extends VisualElement {
       title: this.title,
       text: this.text,
       images: [...this.images],
+      ...(this.members.length > 0 ? { members: this.members } : {}),
       ...(this.icon ? { icon: this.icon } : {}),
+      ...(this.maxItems === null ? {} : { maxItems: this.maxItems }),
       tileId: this.tileId,
     };
   }
